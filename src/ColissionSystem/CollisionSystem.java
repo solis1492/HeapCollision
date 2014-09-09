@@ -1,48 +1,23 @@
 package ColissionSystem;
 
+import java.awt.*;
+
 public class CollisionSystem {
     private MinPQ<Event> pq;        // the priority queue
     private double t  = 0.0;        // simulation clock time
     private double hz = 0.5;        // number of redraw events per clock tick
     private Particle[] particles;   // the array of particles
+    private int players;
+    private boolean firstPlayer = true;
+    private boolean secondPlayer = true;
+    private boolean thirdPlayer = true;
+    private boolean fourthPlayer = true;
 
-    public CollisionSystem(Particle[] particles) {
+    public CollisionSystem(Particle[] particles, int players) {
+        this.players = players;
         this.particles = particles;
     }
 
-    private void predict(Particle a, double limit) {
-        if (a == null) return;
-
-        // particle-particle collisions
-        for (int i = 0; i < particles.length; i++) {
-            double dt = a.timeToHit(particles[i]);
-            if (t + dt <= limit)
-                pq.insert(new Event(t + dt, a, particles[i]));
-        }
-
-        // particle-wall collisions
-        double dtX = a.timeToHitVerticalWall();
-        double dtY = a.timeToHitHorizontalWall();
-        if (t + dtX <= limit) pq.insert(new Event(t + dtX, a, null));
-        if (t + dtY <= limit) pq.insert(new Event(t + dtY, null, a));
-    }
-
-    // redraw all particles
-    private void redraw(double limit) {
-        StdDraw.clear();
-        for (int i = 0; i < particles.length; i++) {
-            particles[i].draw();
-        }
-        StdDraw.show(20);
-        if (t < limit) {
-            pq.insert(new Event(t + 1.0 / hz, null, null));
-        }
-    }
-
-
-    /********************************************************************************
-     *  Event based simulation for limit seconds
-     ********************************************************************************/
     public void simulate(double limit) {
 
         // initialize PQ with collision events and redraw event
@@ -55,6 +30,54 @@ public class CollisionSystem {
 
         // the main event-driven simulation loop
         while (!pq.isEmpty()) {
+
+            if(!particles[particles.length - players].king){
+                if (firstPlayer){
+                    Color newColor = particles[particles.length - players].color;
+                    for (int i = 0; i < particles.length; i++) {
+                        if(particles[i].color == Color.blue)
+                            particles[i].color = newColor;
+                    }
+                    firstPlayer = false;
+                }
+            }
+
+            if(!particles[particles.length - (players - 1)].king){
+                if (secondPlayer){
+                    Color newColor = particles[particles.length - (players - 1)].color;
+                    for (int i = 0; i < particles.length; i++) {
+                        if(particles[i].color == Color.red)
+                            particles[i].color = newColor;
+                    }
+                    secondPlayer = false;
+                }
+            }
+
+            if(players >= 30) {
+                if (!particles[particles.length - (players - 2)].king) {
+                    if (thirdPlayer) {
+                        Color newColor = particles[particles.length - (players - 2)].color;
+                        for (int i = 0; i < particles.length; i++) {
+                            if (particles[i].color == Color.green)
+                                particles[i].color = newColor;
+                        }
+                        thirdPlayer = false;
+                    }
+                }
+
+                if(players == 4) {
+                    if (!particles[particles.length - (players - 3)].king) {
+                        if (fourthPlayer) {
+                            Color newColor = particles[particles.length - (players - 3)].color;
+                            for (int i = 0; i < particles.length; i++) {
+                                if (particles[i].color == Color.yellow)
+                                    particles[i].color = newColor;
+                            }
+                            fourthPlayer = false;
+                        }
+                    }
+                }
+            }
 
             // get impending event, discard if invalidated
             Event e = pq.delMin();
@@ -79,18 +102,36 @@ public class CollisionSystem {
         }
     }
 
+    private void predict(Particle a, double limit) {
+        if (a == null) return;
 
-    /*************************************************************************
-     *  An event during a particle collision simulation. Each event contains
-     *  the time at which it will occur (assuming no supervening actions)
-     *  and the particles a and b involved.
-     *
-     *    -  a and b both null:      redraw event
-     *    -  a null, b not null:     collision with vertical wall
-     *    -  a not null, b null:     collision with horizontal wall
-     *    -  a and b both not null:  binary collision between a and b
-     *
-     *************************************************************************/
+        // particle-particle collisions
+        for (int i = 0; i < particles.length; i++) {
+            double dt = a.timeToHit(particles[i]);
+            if (t + dt <= limit)
+                pq.insert(new Event(t + dt, a, particles[i]));
+        }
+
+        // particle-wall collisions
+        double dtX = a.timeToHitVerticalWall();
+        double dtY = a.timeToHitHorizontalWall();
+        if (t + dtX <= limit) pq.insert(new Event(t + dtX, a, null));
+        if (t + dtY <= limit) pq.insert(new Event(t + dtY, null, a));
+    }
+
+    // redraw all particles
+    private void redraw(double limit) {
+        StdDraw.clear();
+
+        for (int i = 0; i < particles.length; i++) {
+            particles[i].draw();
+        }
+        StdDraw.show(20);
+        if (t < limit) {
+            pq.insert(new Event(t + 1.0 / hz, null, null));
+        }
+    }
+
     private static class Event implements Comparable<Event> {
         private final double time;         // time that event is scheduled to occur
         private final Particle a, b;       // particles involved in event, possibly null
@@ -124,23 +165,32 @@ public class CollisionSystem {
 
     }
 
-
-
-    /********************************************************************************
-     *  Application
-     ********************************************************************************/
     public static void main(String[] args) {
         StdDraw.setXscale(1.0/22.0, 21.0/22.0);
         StdDraw.setYscale(1.0/22.0, 21.0/22.0);
         StdDraw.show(0);
         Particle[] particles;
 
-        int N = 20; //# of particles
-        particles = new Particle[N];
-        for (int i = 0; i < N; i++) particles[i] = new Particle((i%2 == 0));
+        int N = 100; //# of particles
+        int P = 4; // # of players
+        particles = new Particle[(int) (N*1.2) + P];
+        for (int i = 0; i < N; i++) particles[i] = new Particle((i%P));
 
-        CollisionSystem system = new CollisionSystem(particles);
+        int obstacles = (int) (N * 1.2);
+        for (int i = N; i < obstacles; i++) particles[i] = new Particle((-1));
+
+        if(P >= 2) {
+            particles[particles.length - P] = new Particle(0, 0, 0.02, 0.02, 0.02, 0.5, Color.blue);
+            particles[particles.length - (P- 1)] = new Particle(1, 1, -0.02, -0.02, 0.02, 0.5, Color.red);
+        }
+        if(P >= 3) {
+            particles[particles.length - (P - 2)] = new Particle(1, 0, 0.02, 0.02, 0.02, 0.5, Color.green);
+            if(P == 4){
+                particles[particles.length - (P - 3)] = new Particle(0, 1, 0.02, 0.02, 0.02, 0.5, Color.yellow);
+            }
+        }
+
+        CollisionSystem system = new CollisionSystem(particles, P);
         system.simulate(10000);
     }
-
 }

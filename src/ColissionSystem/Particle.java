@@ -5,11 +5,12 @@ import java.awt.Color;
 public class Particle {
     private static final double INFINITY = Double.POSITIVE_INFINITY;
 
+    public boolean king = true;     // player ball
     private double rx, ry;    // position
     private double vx, vy;    // velocity
     private double radius;    // radius
     private double mass;      // mass
-    private Color color;      // color
+    public Color color;      // color
     private int count;        // number of collisions
 
 
@@ -21,20 +22,34 @@ public class Particle {
         this.radius = radius;
         this.mass   = mass;
         this.color  = color;
+        this.king = true;
     }
 
-    public Particle(boolean colorSelect) {
+    public Particle(int colorSelect) {
         rx     = Math.random();
         ry     = Math.random();
         vx     = 0.01 * (Math.random() - 0.5);
         vy     = 0.01 * (Math.random() - 0.5);
         radius = 0.01;
         mass   = 0.5;
-        if (colorSelect) {
+        king = false;
+        if(colorSelect == -1){
+            color = Color.black;
+            mass = 50;
+            vx = 0;
+            vy = 0;
+        }
+        else if (colorSelect == 0) {
             color = Color.red;
         }
-        else {
+        else if(colorSelect == 1) {
             color = Color.blue;
+        }
+        else if (colorSelect == 2) {
+            color = Color.green;
+        }
+        else{
+            color = Color.yellow;
         }
     }
 
@@ -100,16 +115,31 @@ public class Particle {
         this.count++;
         that.count++;
 
-        if(this.color == that.color){
-            this.radius = this.radius <= 0.3 ? this.radius * 1.1 : 0.3;
-            this.mass *= 1.1;
-            that.radius = that.radius <= 0.3 ? that.radius * 1.1 : 0.3;
-            that.mass *= 1.1;
-        } else{
-            if(this.radius > that.radius)
+        if(this.color == that.color) {
+            this.radius = (this.radius <= 0.02 ? this.radius * 1.01 : 0.019);
+            //this.mass *= 1.0001;
+            that.radius = (that.radius <= 0.02 ? that.radius * 1.01 : 0.019);
+            //that.mass *= 1.0001;
+        }
+        else if (this.color == Color.black){
+            this.vx = 0;
+            this.vy = 0;
+        }
+        else if (that.color == Color.black){
+            that.vx = 0;
+            that.vy = 0;
+        }
+        else{
+            if(this.radius > that.radius) {
                 that.color = this.color;
-            else if (this.radius < that.radius)
+                if(that.king)
+                    that.king = !that.king;
+            }
+            else if (this.radius < that.radius) {
                 this.color = that.color;
+                if(this.king)
+                    this.king = !this.king;
+            }
         }
     }
 
